@@ -2,6 +2,7 @@ package ru.practicum.explorewme.user;
 
 import org.springframework.stereotype.Component;
 import ru.practicum.explorewme.user.dto.UserDto;
+import ru.practicum.explorewme.user.dto.UserShortDto;
 import ru.practicum.explorewme.user.model.User;
 
 import java.util.List;
@@ -30,6 +31,10 @@ public class UserMapper {
         user.setName(userDto.getName());
         user.setEmail(userDto.getEmail());
         return user;
+    }
+
+    public UserShortDto toUserShortDto(User user) {
+        return new UserShortDto(user.getId(), user.getName());
     }
 
 

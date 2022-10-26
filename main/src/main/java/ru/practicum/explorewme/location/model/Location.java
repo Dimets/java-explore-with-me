@@ -1,4 +1,4 @@
-package ru.practicum.explorewme.category.model;
+package ru.practicum.explorewme.location.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -6,13 +6,15 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "categories", schema = "public")
+@Table(name = "locations", schema = "public")
 @Data
 @NoArgsConstructor
-public class Category {
+public class Location {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    private Double lat;
+
+    private Double lon;
 }
