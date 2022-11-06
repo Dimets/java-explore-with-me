@@ -1,0 +1,9 @@
+mvn clean
+mvn install
+cd ewm-service 
+docker build -t ewm-service-image .
+cd..
+cd ewm-stat
+docker build -t ewm-stat-image .
+cd..
+docker-compose up
