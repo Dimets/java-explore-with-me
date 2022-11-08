@@ -7,6 +7,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.explorewme.stat.HitDto;
+import ru.practicum.explorewme.stat.ListViewStatDto;
 import ru.practicum.explorewme.stat.ViewStatDto;
 
 import java.util.List;
@@ -28,10 +29,10 @@ public class StatClient extends BaseClient{
         this.rest.postForLocation(STAT_URL + "/hit", request);
     }
 //TODO
-    /*
+
     public List<ViewStatDto> getHits(String uri) {
-        HttpEntity<HitDto> request = new HttpEntity<HitDto>(hitDto);
-        this.rest.postForLocation(STAT_URL + "/hit", request);
+
+        return this.rest.getForObject(STAT_URL + "/stats?uris=" + uri + "&unique=false", ListViewStatDto.class).getViewStatDtos();
     }
-*/
+
 }

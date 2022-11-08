@@ -91,6 +91,7 @@ public class EventMapper {
         eventFullDto.setTitle(event.getTitle());
         eventFullDto.setConfirmedRequests(requestService.getConfirmedRequestsCount(event.getId()));
         //TODO views
+        eventFullDto.setViews(statClient.getHits("event/" + event.getId()).get(0).getCount());
 
         if (event.getPublishedOn() != null) {
             eventFullDto.setPublishedOn(event.getPublishedOn()
