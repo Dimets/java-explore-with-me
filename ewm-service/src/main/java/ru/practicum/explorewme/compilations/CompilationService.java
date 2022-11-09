@@ -15,9 +15,9 @@ public interface CompilationService {
 
     void deleteEvent(Long compId, Long eventId) throws EntityNotFoundException;
 
-    void addEvent (Long compId, Long eventId) throws EntityNotFoundException;
+    void addEvent(Long compId, Long eventId) throws EntityNotFoundException;
 
     void setPinned(Long compId, Boolean flag) throws EntityNotFoundException;
 
-    List<CompilationDto> findCompilations (Boolean pinned, Integer from, Integer size);
+    List<CompilationDto> findCompilations(Boolean pinned, Integer from, Integer size);
 }

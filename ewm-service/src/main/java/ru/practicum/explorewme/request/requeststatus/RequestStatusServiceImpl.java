@@ -6,7 +6,7 @@ import ru.practicum.explorewme.request.requeststatus.model.RequestStatus;
 import javax.persistence.EntityNotFoundException;
 
 @Service
-public class RequestStatusServiceImpl implements RequestStatusService{
+public class RequestStatusServiceImpl implements RequestStatusService {
     private final RequestStatusRepository requestStatusRepository;
 
     public RequestStatusServiceImpl(RequestStatusRepository requestStatusRepository) {

@@ -28,8 +28,8 @@ public class ErrorHandler {
 
         log.error(e.getMessage());
 
-        return new ApiError(errors, "Validation failed",  "Invalid request body",
-                 "FORBIDDEN", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        return new ApiError(errors, "Validation failed", "Invalid request body",
+                "FORBIDDEN", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
     }
 
     @ExceptionHandler
@@ -40,7 +40,7 @@ public class ErrorHandler {
         return new ApiError(new ArrayList<>(), e.getMessage(), "DB constraint has been violated",
                 "CONFLICT", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
     }
-    
+
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentTypeMismatchException(final MethodArgumentTypeMismatchException e) {

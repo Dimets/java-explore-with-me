@@ -53,7 +53,7 @@ public class CompilationAdminController {
     }
 
     //Закрепить подборку на главной странице
-    @PatchMapping(path ="/{compId}/pin")
+    @PatchMapping(path = "/{compId}/pin")
     public void setPinned(@PathVariable(name = "compId") Long compId) throws EntityNotFoundException {
         log.info("PATCH /admin/compilations/{}/pin", compId);
 

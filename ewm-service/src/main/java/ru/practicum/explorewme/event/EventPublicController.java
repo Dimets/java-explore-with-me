@@ -37,7 +37,7 @@ public class EventPublicController {
             @RequestParam(name = "rangeStart", required = false) String rangeStart,
             @RequestParam(name = "rangeEnd", required = false) String rangeEnd,
             @RequestParam(name = "onlyAvailable", defaultValue = "false") Boolean onlyAvailable,
-            @RequestParam(name="sort", required = false) SortOption sortOption,
+            @RequestParam(name = "sort", required = false) SortOption sortOption,
             @PositiveOrZero @RequestParam(name = "from", defaultValue = "0") Integer from,
             @Positive @RequestParam(name = "size", defaultValue = "10") Integer size,
             HttpServletRequest request) {
@@ -55,7 +55,7 @@ public class EventPublicController {
 
     //Получение подробной информации об опубликованном событии по его идентификатору
     @GetMapping(path = "/{id}")
-    public EventFullDto findEvent (@PathVariable(name = "id") Long eventId, HttpServletRequest request)
+    public EventFullDto findEvent(@PathVariable(name = "id") Long eventId, HttpServletRequest request)
             throws EntityNotFoundException {
 
         log.info("GET /events/{}", eventId);
