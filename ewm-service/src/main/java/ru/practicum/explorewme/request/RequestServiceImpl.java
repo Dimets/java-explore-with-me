@@ -62,7 +62,7 @@ public class RequestServiceImpl implements RequestService {
         }
 
         //инициатор события не может добавить запрос на участие в своём событии
-        if (eventFullDto.getInitiator().getId() == userId) {
+        if (eventFullDto.getInitiator().getId().equals(userId)) {
             throw new ValidationException("Нельзя добавить запрос на участие в своем событии");
         }
 
