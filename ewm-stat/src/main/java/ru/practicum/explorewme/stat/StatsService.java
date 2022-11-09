@@ -7,6 +7,6 @@ import java.util.List;
 public interface StatsService {
     void create(EndpointHitDto endpointHitDto);
 
-    List<ViewStats> viewStats(String start, String End,List<String> uris, Boolean unique);
+    List<ViewStats> viewStats(String start, String end, List<String> uris, Boolean unique);
 
 }
