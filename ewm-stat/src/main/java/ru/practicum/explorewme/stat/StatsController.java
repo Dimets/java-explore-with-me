@@ -6,6 +6,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewme.stat.dto.EndpointHitDto;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -25,9 +28,11 @@ public class StatsController {
     public List<ViewStats> findStat(@RequestParam(name = "start", defaultValue = "1991-01-01 00:00:00") String start,
                                        @RequestParam(name = "end", defaultValue = "2099-12-31 23:59:59") String end,
                                        @RequestParam(name = "uris") List<String> uris,
-                                       @RequestParam(name = "unique", defaultValue = "false") Boolean unique) {
+                                       @RequestParam(name = "unique", defaultValue = "false") Boolean unique) throws UnsupportedEncodingException {
         log.info("GET /stats start={} end={} uris={} unique={}", start, end, uris, unique);
-        return statsService.viewStats(start,end, uris, unique);
+
+        return statsService.viewStats(URLDecoder.decode(start, StandardCharsets.UTF_8.toString()),
+                URLDecoder.decode(end, StandardCharsets.UTF_8.toString()), uris, unique);
     }
 
 

@@ -12,6 +12,7 @@ import ru.practicum.explorewme.category.dto.CategoryDto;
 import ru.practicum.explorewme.event.dto.*;
 import ru.practicum.explorewme.event.eventstate.EventStateService;
 import ru.practicum.explorewme.event.model.Event;
+import ru.practicum.explorewme.event.sort.SortOption;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 import ru.practicum.explorewme.location.LocationMapper;
 import ru.practicum.explorewme.location.LocationService;
@@ -20,8 +21,15 @@ import ru.practicum.explorewme.request.RequestService;
 import ru.practicum.explorewme.user.UserService;
 import ru.practicum.explorewme.user.dto.UserDto;
 
+import javax.persistence.EntityManager;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,8 +46,7 @@ public class EventServiceImpl implements EventService {
     private final LocationMapper locationMapper;
     private final EventStateService eventStateService;
     private final RequestService requestService;
-
-    final List<String> SORTING = List.of("EVENT_DATE", "VIEWS"); //варианты сортировки
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -214,40 +221,115 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventShortDto> findEventsByCriteria(String text, List<Integer> categories, Boolean paid,
-                                                    String rangeStart, String rangeEnd, Boolean onlyAvailable,
-                                                    String sort, Integer from, Integer size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+    public List<EventShortDto> findAllPublicByCriteria(String text, List<Long> categories, Boolean paid,
+                                                       Boolean onlyAvailable, String start, String end,
+                                                       Integer from, Integer size, SortOption sort) {
+        List<Predicate> predicates = new ArrayList<>();
 
-        if (onlyAvailable) {
-            return eventMapper.toEventShortDto(eventRepository.findAvailableEventsByCriteria(text.toLowerCase(),
-                            categories, paid,
-                            LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                            LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                            sort, pageable).stream()
-                    .collect(Collectors.toList()));
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+
+        CriteriaQuery<Event> eventCriteriaQuery = criteriaBuilder.createQuery(Event.class);
+
+        Root<Event> eventRoot = eventCriteriaQuery.from(Event.class);
+
+
+        //Только опубликованные события
+        predicates.add(criteriaBuilder.equal(eventRoot.get("state").get("state"), "PUBLISHED"));
+
+        if (text != null) {
+            String likeValue = "%" + text.toLowerCase() + "%";
+            predicates.add(criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(eventRoot.get("annotation")), likeValue),
+                    criteriaBuilder.like(criteriaBuilder.lower(eventRoot.get("description")), likeValue))
+            );
         }
 
-        return eventMapper.toEventShortDto(eventRepository.findAllEventsByCriteria(text.toLowerCase(), categories, paid,
-                        LocalDateTime.parse(rangeStart, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                        LocalDateTime.parse(rangeEnd, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                        sort, pageable).stream()
-                .collect(Collectors.toList()));
+        if (categories != null) {
+            predicates.add((criteriaBuilder.in(eventRoot.get("category").get("id")).value(categories)));
+        }
+
+        if (paid != null) {
+            predicates.add(criteriaBuilder.equal(eventRoot.get("paid"), paid));
+        }
+
+        //TODO avail
+
+        if (start != null) {
+            predicates.add(criteriaBuilder.greaterThan(eventRoot.get("eventDate"),
+                    LocalDateTime.parse(start, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        }
+
+        if (end != null) {
+            predicates.add(criteriaBuilder.lessThan(eventRoot.get("eventDate"),
+                    LocalDateTime.parse(end, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        }
+
+        if (sort != null && sort.equals(SortOption.EVENT_DATE)) {
+            return eventMapper.toEventShortDto(entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
+                            .where(predicates.toArray(new Predicate[]{}))
+                            .orderBy(criteriaBuilder.asc(eventRoot.get("eventDate"))))
+                    .setFirstResult(from)
+                    .setMaxResults(size)
+                    .getResultList());
+        } else if (sort != null && sort.equals(SortOption.VIEWS)) {
+            List<EventShortDto> eventShortDtoList = eventMapper.toEventShortDto(entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
+                            .where(predicates.toArray(new Predicate[]{})))
+                    .getResultList());
+
+            eventShortDtoList.stream()
+                    .sorted(Comparator.comparingLong(EventShortDto::getViews).reversed())
+                    .collect(Collectors.toList());
+
+            return eventShortDtoList.subList(from, from + size);
+        }
+
+        return eventMapper.toEventShortDto(entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
+                        .where(predicates.toArray(new Predicate[]{})))
+                .setFirstResult(from)
+                .setMaxResults(size)
+                .getResultList());
+
     }
 
     @Override
-    public List<EventFullDto> findAll(List<Long> users, List<String> states, List<Long> categories, String start,
-                                      String end, Integer from, Integer size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+    public List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<String> states, List<Long> categories,
+                                                     String start, String end, Integer from, Integer size) {
+        List<Predicate> predicates = new ArrayList<>();
 
-        log.info("original start=" + start);
+        CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
 
-        LocalDateTime startRange = LocalDateTime.parse(start, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        CriteriaQuery<Event> eventCriteriaQuery = criteriaBuilder.createQuery(Event.class);
 
-        LocalDateTime endRange = LocalDateTime.parse(end, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        Root<Event> eventRoot = eventCriteriaQuery.from(Event.class);
 
-        return eventMapper.toEventFullDto(eventRepository.findAll(users, states, categories, startRange, endRange,
-                        pageable).stream()
-                .collect(Collectors.toList()));
+        if (users != null) {
+            predicates.add(criteriaBuilder.in(eventRoot.get("initiator").get("id")).value(users));
+        }
+
+        if (states != null) {
+            List<Long> eventStates = states.stream().map(x -> eventStateService.findByState(x).getId())
+                    .collect(Collectors.toList());
+            predicates.add(criteriaBuilder.in(eventRoot.get("state").get("id")).value(eventStates));
+        }
+
+        if (categories != null) {
+            predicates.add((criteriaBuilder.in(eventRoot.get("category").get("id")).value(categories)));
+        }
+
+        if (start != null) {
+            predicates.add(criteriaBuilder.greaterThan(eventRoot.get("eventDate"),
+                    LocalDateTime.parse(start, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        }
+
+        if (end != null) {
+            predicates.add(criteriaBuilder.lessThan(eventRoot.get("eventDate"),
+                    LocalDateTime.parse(end, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
+        }
+
+        return eventMapper.toEventFullDto(entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
+                        .where(predicates.toArray(new Predicate[]{})))
+                .setFirstResult(from)
+                .setMaxResults(size)
+                .getResultList());
     }
 }

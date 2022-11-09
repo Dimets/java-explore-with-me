@@ -1,6 +1,7 @@
 package ru.practicum.explorewme.event;
 
 import ru.practicum.explorewme.event.dto.*;
+import ru.practicum.explorewme.event.sort.SortOption;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -26,11 +27,11 @@ public interface EventService {
 
     EventFullDto findPublicById(Long eventId) throws EntityNotFoundException;
 
-    List<EventShortDto> findEventsByCriteria(String text, List<Integer> categories, Boolean paid,
-                                              String rangeStart, String rangeEnd, Boolean onlyAvailable,
-                                              String sort,  Integer from,Integer size);
+    List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<String> states, List<Long> categories,
+                                         String start, String end, Integer from, Integer size);
 
-    List<EventFullDto> findAll(List<Long> users, List<String> states, List<Long> categories, String start, String end,
-                               Integer from, Integer size);
+    List<EventShortDto> findAllPublicByCriteria(String text, List<Long> categories, Boolean paid, Boolean onlyAvailable,
+                                         String start, String end, Integer from, Integer size, SortOption sort);
+
 }
 

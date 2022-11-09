@@ -9,6 +9,8 @@ import ru.practicum.explorewme.event.dto.EventFullDto;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.List;
 
 @RestController
@@ -34,16 +36,17 @@ public class EventAdminController {
     }
 
     @GetMapping
-    public List<EventFullDto> findAll(@RequestParam(name = "users") List<Long> users,
-                                      @RequestParam(name = "states") List<String> states,
-                                      @RequestParam(name = "categories") List<Long> categories,
-                                      @RequestParam(name = "rangeStart") String start,
-                                      @RequestParam(name = "rangeEnd") String end,
-                                      @RequestParam(name = "from", defaultValue = "0") Integer from,
-                                      @RequestParam(name = "size", defaultValue = "10") Integer size) {
-        log.info("GET /admin/events?users={}&states={}", users, states);
+    public List<EventFullDto> findAll(@RequestParam(name = "users", required = false) List<Long> users,
+                                      @RequestParam(name = "states", required = false) List<String> states,
+                                      @RequestParam(name = "categories", required = false) List<Long> categories,
+                                      @RequestParam(name = "rangeStart", required = false) String start,
+                                      @RequestParam(name = "rangeEnd", required = false) String end,
+                                      @PositiveOrZero @RequestParam(name = "from", defaultValue = "0") Integer from,
+                                      @Positive @RequestParam(name = "size", defaultValue = "10") Integer size) {
+        log.info("GET /admin/events?users={}&states={}&categories={}&start={}&end={}&from={}&size={}",
+                users, states,categories, start, end, from, size);
 
-        return eventService.findAll(users, states, categories, start, end, from, size);
+        return eventService.findAllAdminByCriteria(users, states, categories, start, end, from, size);
     }
 
     @PutMapping(path = "/{eventId}")
@@ -51,9 +54,8 @@ public class EventAdminController {
                                @RequestBody @Valid AdminUpdateEventRequest adminUpdateEventRequest)
             throws EntityNotFoundException {
         log.info("PUT /admin/events/{}", eventId);
-        log.info("PUT /admin/events/{} adminUpdateEventRequest={}", eventId, adminUpdateEventRequest);
+        log.debug("PUT /admin/events/{} adminUpdateEventRequest={}", eventId, adminUpdateEventRequest);
 
         return eventService.update(eventId, adminUpdateEventRequest);
     }
-
 }

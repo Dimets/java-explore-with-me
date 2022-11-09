@@ -6,9 +6,9 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ViewStatDto {
-    String app;
+    private final String app;
 
-    String uri;
+    private final String uri;
 
-    Long count;
+    private final Long hits;
 }

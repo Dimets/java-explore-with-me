@@ -90,8 +90,7 @@ public class EventMapper {
         eventFullDto.setState(event.getState().getState());
         eventFullDto.setTitle(event.getTitle());
         eventFullDto.setConfirmedRequests(requestService.getConfirmedRequestsCount(event.getId()));
-        //TODO views
-        eventFullDto.setViews(statClient.getHits("event/" + event.getId()).get(0).getCount());
+        eventFullDto.setViews(statClient.getEventViews(event.getId()));
 
         if (event.getPublishedOn() != null) {
             eventFullDto.setPublishedOn(event.getPublishedOn()
@@ -117,8 +116,7 @@ public class EventMapper {
         eventShortDto.setPaid(event.getPaid());
         eventShortDto.setTitle(event.getTitle());
         eventShortDto.setConfirmedRequests(requestService.getConfirmedRequestsCount(event.getId()));
-        //TODO views
-
+        eventShortDto.setViews(statClient.getEventViews(event.getId()));
 
         return eventShortDto;
     }

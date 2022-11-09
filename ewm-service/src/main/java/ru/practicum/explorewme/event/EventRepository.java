@@ -43,10 +43,17 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                                         Pageable pageable);
 
     @Query(value = "select e.* from events e left join event_states es on e.state_id=es.id " +
-            "where e.initiator_id in (:users) and es.state in (:states) and e.category_id in (:catId)" +
-            "and e.event_date > :start and e.event_date < :end", nativeQuery = true)
+            "where (:users is null or e.initiator_id in (:users)) " +
+            "and (:states is null or es.state in (:states)) and (:catId is null or e.category_id in (:catId))" +
+            "and (e.event_date > :start) and (e.event_date < :end)",
+            nativeQuery = true)
     Page<Event> findAll(@Param("users") List<Long> users, @Param("states") List<String> states,
                         @Param("catId") List<Long> categories, @Param("start") LocalDateTime start,
                         @Param("end") LocalDateTime end, Pageable pageable);
+
+    @Query(value = "select e.* from events e " +
+            "where (:users is null or e.initiator_id in (:users)) ",
+            nativeQuery = true)
+    List<Event> findAllTmp(@Param("users") List<Long> users);
 }
 

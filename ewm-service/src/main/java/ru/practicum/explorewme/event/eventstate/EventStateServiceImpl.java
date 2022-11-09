@@ -18,4 +18,9 @@ public class EventStateServiceImpl implements EventStateService {
         return eventStateRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event state with id=%d not found", id)));
     }
+
+    @Override
+    public EventState findByState(String state) {
+        return eventStateRepository.findByState(state);
+    }
 }
