@@ -15,7 +15,7 @@ import java.util.List;
 
 @Service
 public class StatClient extends BaseClient {
-    private static final String STAT_URL = "http://ewm-stat:9090";
+    private static final String STAT_URL = "http://stats-server:9090";
 
     @Autowired
     public StatClient(RestTemplateBuilder builder) {
