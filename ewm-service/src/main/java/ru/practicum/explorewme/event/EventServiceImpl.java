@@ -154,7 +154,7 @@ public class EventServiceImpl implements EventService {
             event.setCategory(categoryMapper.toCategory(categoryService.findById(updateEventRequest.getCategory())));
         }
 
-        if (updateEventRequest.getDescription() !=null) {
+        if (updateEventRequest.getDescription() != null) {
             event.setDescription(updateEventRequest.getDescription());
         }
 
