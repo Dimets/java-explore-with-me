@@ -58,7 +58,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto create(NewEventDto newEventDto, Long userId) {
         //TODO minus seconds for test on github
         if (LocalDateTime.parse(newEventDto.getEventDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT).minusSeconds(1))) {
+                .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT).minusSeconds(5))) {
 
             UserDto userDto = userService.findById(userId);
 
