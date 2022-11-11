@@ -9,6 +9,7 @@ import ru.practicum.explorewme.event.EventMapper;
 import ru.practicum.explorewme.event.model.Event;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
@@ -21,7 +22,7 @@ public class CompilationMapper {
 
         compilation.setTitle(newCompilationDto.getTitle());
         compilation.setPinned(newCompilationDto.getPinned());
-        compilation.setEvents(events);
+        compilation.setEvents(Set.copyOf(events));
 
         return compilation;
     }
@@ -32,7 +33,7 @@ public class CompilationMapper {
         compilationDto.setId(compilation.getId());
         compilationDto.setPinned(compilation.getPinned());
         compilationDto.setTitle(compilation.getTitle());
-        compilationDto.setEvents(eventMapper.toEventShortDto(compilation.getEvents()));
+        compilationDto.setEvents(eventMapper.toEventShortDto(List.copyOf(compilation.getEvents())));
 
         return compilationDto;
     }

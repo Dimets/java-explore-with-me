@@ -17,7 +17,7 @@ public class RequestMapper {
                 request.getEvent().getId(),
                 request.getId(),
                 request.getRequester().getId(),
-                request.getStatus().getStatus());
+                request.getStatus().name());
     }
 
     public List<RequestDto> toRequestDto(List<Request> requests) {

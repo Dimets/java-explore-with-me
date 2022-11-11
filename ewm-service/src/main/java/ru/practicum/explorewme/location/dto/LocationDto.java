@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,11 +14,9 @@ import javax.validation.constraints.NotNull;
 public class LocationDto {
     private Long id;
 
-    @NotNull
     @NotBlank
     private Double lat;
 
-    @NotNull
     @NotBlank
     private Double lon;
 }

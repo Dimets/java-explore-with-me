@@ -10,10 +10,11 @@ import ru.practicum.explorewme.category.CategoryMapper;
 import ru.practicum.explorewme.category.CategoryService;
 import ru.practicum.explorewme.category.dto.CategoryDto;
 import ru.practicum.explorewme.event.dto.*;
-import ru.practicum.explorewme.event.eventstate.EventStateService;
 import ru.practicum.explorewme.event.model.Event;
+import ru.practicum.explorewme.event.model.EventState;
 import ru.practicum.explorewme.event.sort.SortOption;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
+import ru.practicum.explorewme.exception.ValidationException;
 import ru.practicum.explorewme.location.LocationMapper;
 import ru.practicum.explorewme.location.LocationService;
 import ru.practicum.explorewme.location.dto.LocationDto;
@@ -36,7 +37,12 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class EventServiceImpl implements EventService {
+    private static final int HOURS_DELAY_FROM_CREATE_TO_EVENT = 2;
+    private static final int HOURS_DELAY_FROM_PUBLISH_TO_EVENT = 1;
+    private static final int HOURS_DELAY_FROM_UPDATE_TO_EVENT = 2;
+
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final UserService userService;
@@ -44,70 +50,69 @@ public class EventServiceImpl implements EventService {
     private final CategoryMapper categoryMapper;
     private final LocationService locationService;
     private final LocationMapper locationMapper;
-    private final EventStateService eventStateService;
     private final RequestService requestService;
     private final EntityManager entityManager;
 
     @Override
     @Transactional
-    public EventFullDto create(NewEventDto newEventDto, Long userId) throws EntityNotFoundException {
-        UserDto userDto = userService.findById(userId);
+    public EventFullDto create(NewEventDto newEventDto, Long userId) {
+        if (LocalDateTime.parse(newEventDto.getEventDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT))) {
 
-        CategoryDto categoryDto = categoryService.findById(newEventDto.getCategory());
+            UserDto userDto = userService.findById(userId);
 
-        LocationDto locationDto = locationService.findByCoordinates(newEventDto.getLocation().getLat(),
-                newEventDto.getLocation().getLon());
+            CategoryDto categoryDto = categoryService.findById(newEventDto.getCategory());
 
-        Event newEvent = eventMapper.toEvent(newEventDto, userDto, categoryDto, locationDto);
+            LocationDto locationDto = locationService.findByCoordinates(newEventDto.getLocation().getLat(),
+                    newEventDto.getLocation().getLon());
 
-        newEvent.setState(eventStateService.findById(1L)); //PENDING when create event
+            Event newEvent = eventMapper.toEvent(newEventDto, userDto, categoryDto, locationDto);
 
-        EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(newEvent));
+            newEvent.setState(EventState.PENDING);
 
-        eventFullDto.setConfirmedRequests(0L);
+            EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(newEvent));
 
-        return eventFullDto;
+            return eventFullDto;
+        } else {
+            throw new ValidationException(String.format("Дата и время на которые намечено событие не может быть " +
+                    "раньше, чем через %d часа от текущего момента", HOURS_DELAY_FROM_CREATE_TO_EVENT));
+        }
     }
 
     @Override
     @Transactional
-    public EventFullDto publish(Long eventId) throws EntityNotFoundException {
-        Event event = eventRepository.findByIdAndStateIdAndEventDateAfter(
-                        eventId, 1L, LocalDateTime.now().plusHours(1))
+    public EventFullDto publish(Long eventId) {
+        Event event = eventRepository.findByIdAndStateAndEventDateAfter(
+                        eventId, EventState.PENDING, LocalDateTime.now().plusHours(HOURS_DELAY_FROM_PUBLISH_TO_EVENT))
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found " +
-                        "or already published or event date start less than 1 hour from current date", eventId)));
+                        "or already published or event date start less than %d hour from current date", eventId,
+                        HOURS_DELAY_FROM_PUBLISH_TO_EVENT)));
 
         event.setPublishedOn(LocalDateTime.now());
 
-        event.setState(eventStateService.findById(2L)); //PUBLISHED state
+        event.setState(EventState.PUBLISHED);
 
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(event));
-
-        eventFullDto.setConfirmedRequests(0L);
 
         return eventFullDto;
     }
 
     @Override
     @Transactional
-    public EventFullDto reject(Long eventId) throws EntityNotFoundException {
-        Event event = eventRepository.findByIdAndStateId(eventId, 1L)
+    public EventFullDto reject(Long eventId) {
+        Event event = eventRepository.findByIdAndState(eventId, EventState.PENDING)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found " +
                         "or already published", eventId)));
 
-        event.setState(eventStateService.findById(3L)); //CANCELLED STATE
+        event.setState(EventState.CANCELED);
 
         EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(event));
-
-        eventFullDto.setConfirmedRequests(0L);
 
         return eventFullDto;
     }
 
     @Override
     public List<EventShortDto> findAllByInitiator(Long userId, Integer from, Integer size) {
-        userService.findById(userId);
-
         Pageable pageable = PageRequest.of(from / size, size);
 
         List<EventShortDto> eventShortDtoList = eventMapper.toEventShortDto(
@@ -122,29 +127,59 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventFullDto update(UpdateEventRequest updateEventRequest, Long userId) throws EntityNotFoundException {
-        userService.findById(userId);
-
-        Event event = eventRepository.findById(updateEventRequest.getEventId())
+    public EventFullDto update(UpdateEventRequest updateEventRequest, Long userId) {
+        Event event = eventRepository.findByIdAndInitiatorIdAndStateIn(updateEventRequest.getEventId(),
+                        userId, List.of(EventState.PENDING, EventState.CANCELED))
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format("Event with id=%d not found", updateEventRequest.getEventId())));
 
-        event.setAnnotation(updateEventRequest.getAnnotation());
-        event.setCategory(categoryMapper.toCategory(categoryService.findById(updateEventRequest.getCategory())));
-        event.setDescription(updateEventRequest.getDescription());
-        event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
-                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        event.setPaid(updateEventRequest.getPaid());
-        event.setParticipantLimit(updateEventRequest.getParticipantLimit());
-        event.setTitle(updateEventRequest.getTitle());
+        if (updateEventRequest.getEventDate() != null &&
+                LocalDateTime.parse(updateEventRequest.getEventDate(),
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT))) {
+
+            event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        } else {
+            throw new ValidationException(String.format("Дата события должна быть не раньше чем через %d часа" +
+                    " от текущего времени", HOURS_DELAY_FROM_UPDATE_TO_EVENT));
+        }
+
+        if (updateEventRequest.getAnnotation() != null) {
+            event.setAnnotation(updateEventRequest.getAnnotation());
+        }
+
+        if (updateEventRequest.getCategory() != null) {
+            event.setCategory(categoryMapper.toCategory(categoryService.findById(updateEventRequest.getCategory())));
+        }
+
+        if (updateEventRequest.getDescription() !=null) {
+            event.setDescription(updateEventRequest.getDescription());
+        }
+
+        if (updateEventRequest.getPaid() != null) {
+            event.setPaid(updateEventRequest.getPaid());
+        }
+
+        if (updateEventRequest.getParticipantLimit() != null) {
+            event.setParticipantLimit(updateEventRequest.getParticipantLimit());
+        }
+
+        if (updateEventRequest.getTitle() != null) {
+            event.setTitle(updateEventRequest.getTitle());
+        }
+
+        if (event.getState().equals(EventState.CANCELED)) {
+            event.setState(EventState.PENDING);
+        }
 
         return eventMapper.toEventFullDto(eventRepository.save(event));
     }
 
     @Override
     @Transactional
-    public EventFullDto update(Long eventId, AdminUpdateEventRequest adminUpdateEventRequest)
-            throws EntityNotFoundException {
+    public EventFullDto update(Long eventId, AdminUpdateEventRequest adminUpdateEventRequest) {
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found", eventId)));
@@ -189,7 +224,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto findByIdAndInitiator(Long eventId, Long userId) throws EntityNotFoundException {
+    public EventFullDto findByIdAndInitiator(Long eventId, Long userId) {
         return eventMapper.toEventFullDto(eventRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format("Event with id=%d and initiator_id=%d not found", eventId, userId))));
@@ -197,26 +232,26 @@ public class EventServiceImpl implements EventService {
 
     @Override
     @Transactional
-    public EventFullDto cancelEvent(Long eventId, Long userId) throws EntityNotFoundException {
-        Event event = eventRepository.findByIdAndInitiatorIdAndStateId(eventId, userId, 1L)
+    public EventFullDto cancelEvent(Long eventId, Long userId) {
+        Event event = eventRepository.findByIdAndInitiatorIdAndStateIn(eventId, userId, List.of(EventState.PENDING))
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format("Event with id=%d and initiator_id=%d and state_id=%d not found",
                                 eventId, userId, 1L)));
 
-        event.setState(eventStateService.findById(3L)); //CANCELLED STATE
+        event.setState(EventState.CANCELED); //CANCELLED STATE
 
         return eventMapper.toEventFullDto(eventRepository.save(event));
     }
 
     @Override
-    public EventFullDto findById(Long eventId) throws EntityNotFoundException {
+    public EventFullDto findById(Long eventId) {
         return eventMapper.toEventFullDto(eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found", eventId))));
     }
 
     @Override
-    public EventFullDto findPublicById(Long eventId) throws EntityNotFoundException {
-        return eventMapper.toEventFullDto(eventRepository.findByIdAndStateId(eventId, 2L)
+    public EventFullDto findPublicById(Long eventId) {
+        return eventMapper.toEventFullDto(eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found", eventId))));
     }
 
@@ -234,7 +269,7 @@ public class EventServiceImpl implements EventService {
 
 
         //Только опубликованные события
-        predicates.add(criteriaBuilder.equal(eventRoot.get("state").get("state"), "PUBLISHED"));
+        predicates.add(criteriaBuilder.equal(eventRoot.get("state"), EventState.PUBLISHED));
 
         if (text != null) {
             String likeValue = "%" + text.toLowerCase() + "%";
@@ -272,7 +307,8 @@ public class EventServiceImpl implements EventService {
                     .setMaxResults(size)
                     .getResultList());
         } else if (sort != null && sort.equals(SortOption.VIEWS)) {
-            List<EventShortDto> eventShortDtoList = eventMapper.toEventShortDto(entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
+            List<EventShortDto> eventShortDtoList = eventMapper.toEventShortDto(
+                    entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
                             .where(predicates.toArray(new Predicate[]{})))
                     .getResultList());
 
@@ -292,7 +328,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<String> states, List<Long> categories,
+    public List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<EventState> states, List<Long> categories,
                                                      String start, String end, Integer from, Integer size) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -307,9 +343,7 @@ public class EventServiceImpl implements EventService {
         }
 
         if (states != null) {
-            List<Long> eventStates = states.stream().map(x -> eventStateService.findByState(x).getId())
-                    .collect(Collectors.toList());
-            predicates.add(criteriaBuilder.in(eventRoot.get("state").get("id")).value(eventStates));
+            predicates.add(criteriaBuilder.in(eventRoot.get("state")).value(states));
         }
 
         if (categories != null) {

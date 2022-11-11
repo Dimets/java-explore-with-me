@@ -6,18 +6,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class LocationShortDto {
-    @NotNull
+
     @NotBlank
     private Double lat;
 
-    @NotNull
     @NotBlank
     private Double lon;
 }

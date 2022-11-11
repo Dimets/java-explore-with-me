@@ -2,7 +2,6 @@ package ru.practicum.explorewme.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewme.user.dto.UserDto;
 
@@ -13,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping(path = "/admin/users")
-@Validated
 @RequiredArgsConstructor
 @Slf4j
 public class UserAdminController {
@@ -27,15 +25,15 @@ public class UserAdminController {
     }
 
     @GetMapping
-    public List<UserDto> getUsers(@RequestParam (name = "ids", defaultValue = "") Long[] ids,
-                                  @PositiveOrZero @RequestParam(name = "from", defaultValue = "0") Integer from,
-                                  @Positive @RequestParam(name = "size", defaultValue = "10") Integer size) {
+    public List<UserDto> getUsers(@RequestParam(defaultValue = "") Long[] ids,
+                                  @PositiveOrZero @RequestParam(defaultValue = "0") Integer from,
+                                  @Positive @RequestParam(defaultValue = "10") Integer size) {
         log.info("GET /admin/users ids={} from={}, size={}", ids, from, size);
         return userService.findAll(ids, from, size);
     }
 
     @DeleteMapping("/{userId}")
-    public void deleteUser(@PathVariable("userId") Long userId) {
+    public void deleteUser(@PathVariable Long userId) {
         log.info("DELETE /users/{}", userId);
         userService.deleteById(userId);
     }

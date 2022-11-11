@@ -30,7 +30,7 @@ public class UpdateEventRequest {
 
     private Boolean paid;
 
-    private int participantLimit;
+    private Integer participantLimit;
 
     @Size(min = 3, max = 120)
     @NotBlank

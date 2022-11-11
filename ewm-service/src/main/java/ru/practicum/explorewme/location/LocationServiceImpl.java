@@ -2,6 +2,7 @@ package ru.practicum.explorewme.location;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewme.location.dto.LocationDto;
 import ru.practicum.explorewme.location.dto.LocationShortDto;
 import ru.practicum.explorewme.location.model.Location;
@@ -10,6 +11,7 @@ import javax.persistence.EntityNotFoundException;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class LocationServiceImpl implements LocationService {
     private final LocationMapper locationMapper;
     private final LocationRepository locationRepository;
@@ -20,27 +22,17 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
+    @Transactional
     public LocationDto create(LocationShortDto locationShortDto) {
         return locationMapper.toLocationDto(locationRepository.save(locationMapper.toLocation(locationShortDto)));
     }
 
     @Override
+    @Transactional
     public LocationDto findByCoordinates(Double lat, Double lon) {
-        log.info("findByCoordinates");
-
-        /* локация должна быть соаздана заранее
-        return locationMapper.toLocationDto(locationRepository.findByLatAndLon(lat, lon)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format("Локация с координатами lat=%f lon=%f не найдена", lat, lon))));
-
-         */
-
         //создаем новую локацию если не находим существующую
         if (locationRepository.findByLatAndLon(lat, lon).isPresent()) {
-            return locationMapper.toLocationDto(locationRepository.findByLatAndLon(lat, lon)
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            String.format("Локация с координатами lat=%s lon=%s не найдена",
-                                    lat.toString(), lon.toString()))));
+            return locationMapper.toLocationDto(locationRepository.findByLatAndLon(lat, lon).get());
         } else {
             return locationMapper.toLocationDto(locationRepository.save(new Location(lat, lon)));
         }

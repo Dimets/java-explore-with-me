@@ -48,7 +48,7 @@ public class StatClient extends BaseClient {
 
     public Long getEventViews(Long eventId) {
         List<ViewStatDto> stats = getStats("1991-01-01 00:00:00","2049-12-31 23:59:59",
-        List.of(eventId), false);
+                List.of(eventId), false);
 
         if (stats.size() == 0) {
             return 0L;

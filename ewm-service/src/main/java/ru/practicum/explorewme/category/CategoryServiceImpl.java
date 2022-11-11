@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewme.category.dto.CategoryDto;
+import ru.practicum.explorewme.category.dto.NewCategoryDto;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
@@ -21,18 +23,22 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
-    public CategoryDto create(CategoryDto categoryDto) {
-        return categoryMapper.toCategoryDto(categoryRepository.save(categoryMapper.toCategory(categoryDto)));
+    public CategoryDto create(NewCategoryDto newCategoryDto) {
+        return categoryMapper.toCategoryDto(categoryRepository.save(categoryMapper.toCategory(newCategoryDto)));
     }
 
     @Override
     @Transactional
     public CategoryDto update(CategoryDto categoryDto) {
-        return categoryMapper.toCategoryDto(categoryMapper.toCategory(categoryDto));
+        if (categoryRepository.existsById(categoryDto.getId())) {
+            return categoryMapper.toCategoryDto(categoryRepository.save(categoryMapper.toCategory(categoryDto)));
+        } else {
+            throw new EntityNotFoundException(String.format("Категория с id=%d не существует", categoryDto.getId()));
+        }
     }
 
     @Override
-    public CategoryDto findById(Long id) throws EntityNotFoundException {
+    public CategoryDto findById(Long id) {
         return categoryMapper.toCategoryDto(categoryRepository.findById(id)
                 .orElseThrow(() ->
                         new EntityNotFoundException(String.format("Категория с id=%d не существует", id))));

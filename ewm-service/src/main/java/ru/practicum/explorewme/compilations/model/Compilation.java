@@ -1,16 +1,18 @@
 package ru.practicum.explorewme.compilations.model;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.explorewme.event.model.Event;
 
 import javax.persistence.*;
-import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "compilations", schema = "public")
-@Data
 @NoArgsConstructor
+@Getter
+@Setter
 public class Compilation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,6 +21,7 @@ public class Compilation {
     @Column(name = "is_pinned")
     private Boolean pinned;
 
+    @Column(nullable = false)
     private String title;
 
     @ManyToMany
@@ -26,5 +29,5 @@ public class Compilation {
             name = "events_compilations",
             joinColumns = @JoinColumn(name = "compilation_id"), inverseJoinColumns = @JoinColumn(name = "event_id")
     )
-    private List<Event> events;
+    private Set<Event> events;
 }

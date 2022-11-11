@@ -1,9 +1,9 @@
 package ru.practicum.explorewme.request.model;
 
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.explorewme.event.model.Event;
-import ru.practicum.explorewme.request.requeststatus.model.RequestStatus;
 import ru.practicum.explorewme.user.model.User;
 
 import javax.persistence.*;
@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "requests", schema = "public")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 public class Request {
     @Id
@@ -26,9 +27,10 @@ public class Request {
     @JoinColumn(name = "event_id")
     private Event event;
 
+    @Column(nullable = false)
     private LocalDateTime created;
 
-    @ManyToOne
-    @JoinColumn(name = "status_id")
+    @Enumerated(value = EnumType.STRING)
+    @Column(nullable = false)
     private RequestStatus status;
 }

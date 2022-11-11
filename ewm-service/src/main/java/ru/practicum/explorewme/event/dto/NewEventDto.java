@@ -26,7 +26,6 @@ public class NewEventDto {
     private String description;
 
     @NotBlank
-    @NotNull
     private String eventDate;
 
     private LocationShortDto location;

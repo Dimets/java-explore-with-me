@@ -1,27 +1,27 @@
 package ru.practicum.explorewme.request;
 
-import ru.practicum.explorewme.exception.EntityNotFoundException;
-import ru.practicum.explorewme.exception.ValidationException;
 import ru.practicum.explorewme.request.dto.RequestDto;
 
 import java.util.List;
 
 public interface RequestService {
-    RequestDto create(Long userId, Long eventId) throws EntityNotFoundException, ValidationException;
+    RequestDto create(Long userId, Long eventId);
 
     Long getConfirmedRequestsCount(Long eventId);
 
     List<RequestDto> findAllByRequester(Long userId);
 
-    RequestDto cancel(Long userId, Long eventId) throws EntityNotFoundException;
+    RequestDto cancel(Long userId, Long eventId);
 
-    RequestDto reject(Long requestId) throws EntityNotFoundException;
+    RequestDto reject(Long requestId);
 
     List<RequestDto> findAllByEvent(Long eventId);
 
-    RequestDto confirm(Long requestId) throws EntityNotFoundException;
+    List<RequestDto> findAllByEventAndOwner(Long eventId, Long userId);
 
-    RequestDto confirmRequest(Long userId, Long eventId, Long requestId) throws EntityNotFoundException;
+    RequestDto confirm(Long requestId);
 
-    RequestDto rejectRequest(Long userId, Long eventId, Long requestId) throws EntityNotFoundException;
+    RequestDto confirmRequest(Long userId, Long eventId, Long requestId);
+
+    RequestDto rejectRequest(Long userId, Long eventId, Long requestId);
 }

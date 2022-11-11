@@ -2,6 +2,7 @@ package ru.practicum.explorewme.category;
 
 import org.springframework.stereotype.Component;
 import ru.practicum.explorewme.category.dto.CategoryDto;
+import ru.practicum.explorewme.category.dto.NewCategoryDto;
 import ru.practicum.explorewme.category.model.Category;
 
 import java.util.List;
@@ -16,11 +17,17 @@ public class CategoryMapper {
     public Category toCategory(CategoryDto categoryDto) {
         Category category = new Category();
 
-        if (categoryDto.getId() != null) {
-            category.setId(categoryDto.getId());
-        }
+        category.setId(categoryDto.getId());
 
         category.setName(categoryDto.getName());
+
+        return category;
+    }
+
+    public Category toCategory(NewCategoryDto newCategoryDto) {
+        Category category = new Category();
+
+        category.setName(newCategoryDto.getName());
 
         return category;
     }

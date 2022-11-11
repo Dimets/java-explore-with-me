@@ -87,7 +87,7 @@ public class EventMapper {
         eventFullDto.setPaid(event.getPaid());
         eventFullDto.setParticipantLimit(event.getParticipantLimit());
         eventFullDto.setRequestModeration(event.getRequestModeration());
-        eventFullDto.setState(event.getState().getState());
+        eventFullDto.setState(event.getState().name());
         eventFullDto.setTitle(event.getTitle());
         eventFullDto.setConfirmedRequests(requestService.getConfirmedRequestsCount(event.getId()));
         eventFullDto.setViews(statClient.getEventViews(event.getId()));
