@@ -34,6 +34,13 @@ public class SubscriptionPrivateController {
         return subscriptionService.findAllUsers(subsId);
     }
 
+    //Получить список кто на пользователя подписан
+    @GetMapping(path = "/subscribers/{userId}")
+    public List<UserShortDto> findAllSubscribers(@PathVariable Long userId) {
+        log.info("POST /subscriptions/subscribers/{}", userId);
+
+        return subscriptionService.findAllSubscribers(userId);
+    }
 
     //Получить список актуальных событий пользователей, на которых подписан пользователь
     @GetMapping(path = "/events/{subsId}")

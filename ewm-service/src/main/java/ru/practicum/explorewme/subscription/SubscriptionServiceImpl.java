@@ -14,6 +14,7 @@ import ru.practicum.explorewme.event.dto.EventShortDto;
 import ru.practicum.explorewme.event.model.Event;
 import ru.practicum.explorewme.event.model.EventState;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
+import ru.practicum.explorewme.exception.ValidationException;
 import ru.practicum.explorewme.subscription.dto.SubscriptionDto;
 import ru.practicum.explorewme.subscription.model.Subscription;
 import ru.practicum.explorewme.subscription.model.SubscriptionStatus;
@@ -35,13 +36,17 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final UserMapper userMapper;
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionMapper subscriptionMapper;
-    private final EventService eventService;
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
 
     @Transactional
     @Override
     public SubscriptionDto create(Long subsId, Long userId) {
+
+        if (subsId.equals(userId)) {
+            throw new ValidationException("Пользователь не может подписаться сам на себя");
+        }
+
         User subscriber = userRepository.findById(subsId)
                 .orElseThrow(() ->
                         new EntityNotFoundException(String.format("Пользователь с id=%d не существует", subsId))
@@ -69,6 +74,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         throw new EntityNotFoundException(String.format("Пользователь с id=%d не существует", subsId));
+    }
+
+    @Override
+    public List<UserShortDto> findAllSubscribers(Long userId) {
+
+        if (userRepository.existsById(userId)) {
+            return userMapper.toUserShortDto(List.copyOf(userRepository.findById(userId).get().getSubscribers()));
+        }
+
+        throw new EntityNotFoundException(String.format("Пользователь с id=%d не существует", userId));
     }
 
     @Override

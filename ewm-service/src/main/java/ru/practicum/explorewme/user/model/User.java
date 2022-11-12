@@ -30,4 +30,13 @@ public class User {
             joinColumns = @JoinColumn(name = "subscriber_id"), inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private Set<User> subscriptions; //TODO maybe Set<Subscription>
+
+    @ManyToMany
+    @JoinTable(
+            name = "users_subscriptions",
+            joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "subscriber_id")
+    )
+    private Set<User> subscribers; //TODO maybe Set<Subscription>
+
+
 }

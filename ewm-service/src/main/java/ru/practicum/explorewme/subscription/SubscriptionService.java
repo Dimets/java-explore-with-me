@@ -11,5 +11,9 @@ public interface SubscriptionService {
 
     List<UserShortDto> findAllUsers(Long subsId);
 
+    List<UserShortDto> findAllSubscribers(Long userId);
+
     List<EventShortDto> findAllEvents(Long subsId, Integer from, Integer size);
+
+
 }
