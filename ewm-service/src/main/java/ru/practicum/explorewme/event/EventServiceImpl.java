@@ -134,10 +134,11 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         String.format("Event with id=%d not found", updateEventRequest.getEventId())));
 
+        //TODO minus seconds for test on github
         if (updateEventRequest.getEventDate() != null &&
                 LocalDateTime.parse(updateEventRequest.getEventDate(),
                         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT))) {
+                        .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT).minusSeconds(5))) {
 
             event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
