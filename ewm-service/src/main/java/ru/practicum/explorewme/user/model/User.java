@@ -23,11 +23,4 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String email;
-
-    @ManyToMany
-    @JoinTable(
-            name = "events_compilations",
-            joinColumns = @JoinColumn(name = "compilation_id"), inverseJoinColumns = @JoinColumn(name = "event_id")
-    )
-    private Set<Event> events;
 }
