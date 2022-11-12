@@ -57,7 +57,7 @@ public class EventServiceImpl implements EventService {
     public EventFullDto create(NewEventDto newEventDto, Long userId) {
         //TODO minus seconds for test on github
         if (LocalDateTime.parse(newEventDto.getEventDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT))) {
+                .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT).minusSeconds(5))) {
             throw new ValidationException(String.format("Дата и время на которые намечено событие не может быть " +
                     "раньше, чем через %d часа от текущего момента", HOURS_DELAY_FROM_CREATE_TO_EVENT));
         }
@@ -145,7 +145,7 @@ public class EventServiceImpl implements EventService {
         if (updateEventRequest.getEventDate() != null &&
                 LocalDateTime.parse(updateEventRequest.getEventDate(),
                                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT))) {
+                        .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT).minusSeconds(5))) {
 
             throw new ValidationException(String.format("Дата события должна быть не раньше чем через %d часа" +
                     " от текущего времени", HOURS_DELAY_FROM_UPDATE_TO_EVENT));
