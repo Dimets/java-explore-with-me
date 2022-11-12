@@ -26,8 +26,8 @@ public class User {
 
     @ManyToMany
     @JoinTable(
-            name = "events_compilations",
-            joinColumns = @JoinColumn(name = "compilation_id"), inverseJoinColumns = @JoinColumn(name = "event_id")
+            name = "users_subscriptions",
+            joinColumns = @JoinColumn(name = "subscriber_id"), inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private Set<Event> events;
+    private Set<User> subscriptions; //TODO maybe Set<Subscription>
 }

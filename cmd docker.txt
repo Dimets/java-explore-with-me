@@ -7,3 +7,8 @@ cd ewm-stat
 docker build -t ewm-stat-image .
 cd..
 docker-compose up
+
+
+
+
+
