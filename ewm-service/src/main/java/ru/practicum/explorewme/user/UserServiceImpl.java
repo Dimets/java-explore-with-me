@@ -6,9 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.explorewme.exception.EntityNotFoundException;
 import ru.practicum.explorewme.user.dto.UserDto;
 
-import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,7 +47,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto findById(Long id) {
         return userMapper.toUserDto(userRepository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException(String.format("User with id=%d not found", id))));
+                new EntityNotFoundException(String.format("Пользователь с id=%d не существует", id))));
     }
 
     @Override

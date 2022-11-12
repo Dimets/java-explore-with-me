@@ -7,7 +7,7 @@ import java.util.List;
 public interface RequestService {
     RequestDto create(Long userId, Long eventId);
 
-    Long getConfirmedRequestsCount(Long eventId);
+    Integer getConfirmedRequestsCount(Long eventId);
 
     List<RequestDto> findAllByRequester(Long userId);
 

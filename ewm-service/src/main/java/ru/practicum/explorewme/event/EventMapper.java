@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import ru.practicum.explorewme.category.CategoryMapper;
-import ru.practicum.explorewme.category.dto.CategoryDto;
+import ru.practicum.explorewme.category.model.Category;
 import ru.practicum.explorewme.client.StatClient;
 import ru.practicum.explorewme.event.dto.EventFullDto;
 import ru.practicum.explorewme.event.dto.EventShortDto;
@@ -15,6 +15,7 @@ import ru.practicum.explorewme.location.dto.LocationDto;
 import ru.practicum.explorewme.request.RequestService;
 import ru.practicum.explorewme.user.UserMapper;
 import ru.practicum.explorewme.user.dto.UserDto;
+import ru.practicum.explorewme.user.model.User;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,15 +41,15 @@ public class EventMapper {
         this.statClient = statClient;
     }
 
-    public Event toEvent(NewEventDto newEventDto, UserDto userDto, CategoryDto categoryDto, LocationDto locationDto) {
+    public Event toEvent(NewEventDto newEventDto, User user, Category category, LocationDto locationDto) {
         Event event = new Event();
 
         event.setAnnotation(newEventDto.getAnnotation());
-        event.setCategory(categoryMapper.toCategory(categoryDto));
+        event.setCategory(category);
         event.setDescription(newEventDto.getDescription());
         event.setEventDate(LocalDateTime.parse(newEventDto.getEventDate(),
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        event.setInitiator(userMapper.toUser(userDto));
+        event.setInitiator(user);
         event.setLocation(locationMapper.toLocation(locationDto));
         event.setPaid(newEventDto.getPaid());
         event.setParticipantLimit(newEventDto.getParticipantLimit());

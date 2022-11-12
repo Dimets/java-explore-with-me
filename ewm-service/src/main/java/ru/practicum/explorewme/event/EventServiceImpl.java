@@ -6,9 +6,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.explorewme.category.CategoryMapper;
-import ru.practicum.explorewme.category.CategoryService;
-import ru.practicum.explorewme.category.dto.CategoryDto;
+import ru.practicum.explorewme.category.CategoryRepository;
+import ru.practicum.explorewme.category.model.Category;
 import ru.practicum.explorewme.event.dto.*;
 import ru.practicum.explorewme.event.model.Event;
 import ru.practicum.explorewme.event.model.EventState;
@@ -18,9 +17,10 @@ import ru.practicum.explorewme.exception.ValidationException;
 import ru.practicum.explorewme.location.LocationMapper;
 import ru.practicum.explorewme.location.LocationService;
 import ru.practicum.explorewme.location.dto.LocationDto;
-import ru.practicum.explorewme.request.RequestService;
-import ru.practicum.explorewme.user.UserService;
-import ru.practicum.explorewme.user.dto.UserDto;
+import ru.practicum.explorewme.request.RequestRepository;
+import ru.practicum.explorewme.request.model.RequestStatus;
+import ru.practicum.explorewme.user.UserRepository;
+import ru.practicum.explorewme.user.model.User;
 
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -45,12 +45,11 @@ public class EventServiceImpl implements EventService {
 
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
-    private final UserService userService;
-    private final CategoryService categoryService;
-    private final CategoryMapper categoryMapper;
+    private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
     private final LocationService locationService;
     private final LocationMapper locationMapper;
-    private final RequestService requestService;
+    private final RequestRepository requestRepository;
     private final EntityManager entityManager;
 
     @Override
@@ -58,26 +57,32 @@ public class EventServiceImpl implements EventService {
     public EventFullDto create(NewEventDto newEventDto, Long userId) {
         //TODO minus seconds for test on github
         if (LocalDateTime.parse(newEventDto.getEventDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT).minusSeconds(5))) {
-
-            UserDto userDto = userService.findById(userId);
-
-            CategoryDto categoryDto = categoryService.findById(newEventDto.getCategory());
-
-            LocationDto locationDto = locationService.findByCoordinates(newEventDto.getLocation().getLat(),
-                    newEventDto.getLocation().getLon());
-
-            Event newEvent = eventMapper.toEvent(newEventDto, userDto, categoryDto, locationDto);
-
-            newEvent.setState(EventState.PENDING);
-
-            EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(newEvent));
-
-            return eventFullDto;
-        } else {
+                .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_CREATE_TO_EVENT))) {
             throw new ValidationException(String.format("Дата и время на которые намечено событие не может быть " +
                     "раньше, чем через %d часа от текущего момента", HOURS_DELAY_FROM_CREATE_TO_EVENT));
         }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(String.format("Пользователь с id=%d не существует", userId))
+                );
+
+        Category category = categoryRepository.findById(newEventDto.getCategory())
+                .orElseThrow(() -> new EntityNotFoundException(String.format(
+                        "Категория с id=%d не существует", newEventDto.getCategory()))
+                );
+
+
+        LocationDto locationDto = locationService.findByCoordinates(newEventDto.getLocation().getLat(),
+                newEventDto.getLocation().getLon());
+
+        Event newEvent = eventMapper.toEvent(newEventDto, user, category, locationDto);
+
+        newEvent.setState(EventState.PENDING);
+
+        EventFullDto eventFullDto = eventMapper.toEventFullDto(eventRepository.save(newEvent));
+
+        return eventFullDto;
     }
 
     @Override
@@ -86,7 +91,7 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findByIdAndStateAndEventDateAfter(
                         eventId, EventState.PENDING, LocalDateTime.now().plusHours(HOURS_DELAY_FROM_PUBLISH_TO_EVENT))
                 .orElseThrow(() -> new EntityNotFoundException(String.format("Event with id=%d not found " +
-                        "or already published or event date start less than %d hour from current date", eventId,
+                                "or already published or event date start less than %d hour from current date", eventId,
                         HOURS_DELAY_FROM_PUBLISH_TO_EVENT)));
 
         event.setPublishedOn(LocalDateTime.now());
@@ -121,7 +126,9 @@ public class EventServiceImpl implements EventService {
                         .collect(Collectors.toList()));
 
         eventShortDtoList.stream()
-                .forEach((x) -> x.setConfirmedRequests(requestService.getConfirmedRequestsCount(x.getId())));
+                .forEach((x) -> x.setConfirmedRequests(requestRepository.countByEventIdAndStatus(x.getId(),
+                        RequestStatus.CONFIRMED))
+                );
 
         return eventShortDtoList;
     }
@@ -137,23 +144,25 @@ public class EventServiceImpl implements EventService {
         //TODO minus seconds for test on github
         if (updateEventRequest.getEventDate() != null &&
                 LocalDateTime.parse(updateEventRequest.getEventDate(),
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        .isAfter(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT).minusSeconds(5))) {
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        .isBefore(LocalDateTime.now().plusHours(HOURS_DELAY_FROM_UPDATE_TO_EVENT))) {
 
-            event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-
-        } else {
             throw new ValidationException(String.format("Дата события должна быть не раньше чем через %d часа" +
                     " от текущего времени", HOURS_DELAY_FROM_UPDATE_TO_EVENT));
         }
+
+        event.setEventDate(LocalDateTime.parse(updateEventRequest.getEventDate(),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         if (updateEventRequest.getAnnotation() != null) {
             event.setAnnotation(updateEventRequest.getAnnotation());
         }
 
         if (updateEventRequest.getCategory() != null) {
-            event.setCategory(categoryMapper.toCategory(categoryService.findById(updateEventRequest.getCategory())));
+            event.setCategory(categoryRepository.findById(updateEventRequest.getCategory())
+                    .orElseThrow(() -> new EntityNotFoundException(String.format(
+                            "Категория с id=%d не существует", updateEventRequest.getCategory())))
+            );
         }
 
         if (updateEventRequest.getDescription() != null) {
@@ -191,8 +200,10 @@ public class EventServiceImpl implements EventService {
         }
 
         if (adminUpdateEventRequest.getCategory() != null) {
-            event.setCategory(categoryMapper.toCategory(
-                    categoryService.findById(adminUpdateEventRequest.getCategory())));
+            event.setCategory(categoryRepository.findById(adminUpdateEventRequest.getCategory())
+                    .orElseThrow(() -> new EntityNotFoundException(String.format(
+                            "Категория с id=%d не существует", adminUpdateEventRequest.getCategory())))
+            );
         }
 
         if (adminUpdateEventRequest.getDescription() != null) {
@@ -311,8 +322,8 @@ public class EventServiceImpl implements EventService {
         } else if (sort != null && sort.equals(SortOption.VIEWS)) {
             List<EventShortDto> eventShortDtoList = eventMapper.toEventShortDto(
                     entityManager.createQuery(eventCriteriaQuery.select(eventRoot)
-                            .where(predicates.toArray(new Predicate[]{})))
-                    .getResultList());
+                                    .where(predicates.toArray(new Predicate[]{})))
+                            .getResultList());
 
             eventShortDtoList.stream()
                     .sorted(Comparator.comparingLong(EventShortDto::getViews).reversed())
@@ -330,7 +341,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<EventState> states, List<Long> categories,
+    public List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<String> states, List<Long> categories,
                                                      String start, String end, Integer from, Integer size) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -345,7 +356,9 @@ public class EventServiceImpl implements EventService {
         }
 
         if (states != null) {
-            predicates.add(criteriaBuilder.in(eventRoot.get("state")).value(states));
+            List<EventState> eventStates = states.stream()
+                    .map(x -> EventState.valueOf(x.toUpperCase())).collect(Collectors.toList());
+            predicates.add(criteriaBuilder.in(eventRoot.get("state")).value(eventStates));
         }
 
         if (categories != null) {

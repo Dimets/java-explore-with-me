@@ -1,52 +1,41 @@
 package ru.practicum.explorewme.request;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.explorewme.event.EventMapper;
-import ru.practicum.explorewme.event.EventService;
-import ru.practicum.explorewme.event.dto.EventFullDto;
+import ru.practicum.explorewme.event.EventRepository;
+import ru.practicum.explorewme.event.model.Event;
+import ru.practicum.explorewme.event.model.EventState;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 import ru.practicum.explorewme.exception.ValidationException;
 import ru.practicum.explorewme.request.dto.RequestDto;
 import ru.practicum.explorewme.request.model.Request;
 import ru.practicum.explorewme.request.model.RequestStatus;
-import ru.practicum.explorewme.user.UserMapper;
-import ru.practicum.explorewme.user.UserService;
-import ru.practicum.explorewme.user.dto.UserDto;
+import ru.practicum.explorewme.user.UserRepository;
+import ru.practicum.explorewme.user.model.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+@AllArgsConstructor
 public class RequestServiceImpl implements RequestService {
-    private RequestRepository requestRepository;
-    private UserService userService;
-    private EventService eventService;
-    private EventMapper eventMapper;
-    private UserMapper userMapper;
+    private final RequestRepository requestRepository;
+    private final UserRepository userRepository;
+    private final EventRepository eventRepository;
     private RequestMapper requestMapper;
-
-    @Autowired
-    public RequestServiceImpl(RequestRepository requestRepository, UserService userService,
-                              @Lazy EventService eventService, EventMapper eventMapper, UserMapper userMapper,
-                              RequestMapper requestMapper) {
-        this.requestRepository = requestRepository;
-        this.userService = userService;
-        this.eventService = eventService;
-        this.eventMapper = eventMapper;
-        this.userMapper = userMapper;
-        this.requestMapper = requestMapper;
-    }
 
     @Override
     @Transactional
     public RequestDto create(Long userId, Long eventId) {
-        EventFullDto eventFullDto = eventService.findById(eventId);
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException(String.format(
+                        "Событие с id=%d не существует", eventId)));
 
-        UserDto userDto = userService.findById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(String.format(
+                        "Пользователь с id=%d не существует", userId)));
 
 
         //нельзя добавить повторный запрос
@@ -55,18 +44,18 @@ public class RequestServiceImpl implements RequestService {
         }
 
         //инициатор события не может добавить запрос на участие в своём событии
-        if (eventFullDto.getInitiator().getId().equals(userId)) {
+        if (event.getInitiator().getId().equals(userId)) {
             throw new ValidationException("Нельзя добавить запрос на участие в своем событии");
         }
 
         //нельзя участвовать в неопубликованном событии
-        if (!eventFullDto.getState().equals("PUBLISHED")) {
+        if (!event.getState().equals(EventState.PUBLISHED)) {
             throw new ValidationException("Нельзя участвовать в неопубликованном событии");
         }
 
         //если у события достигнут лимит запросов на участие
-        if (getConfirmedRequestsCount(eventId) == eventFullDto.getParticipantLimit()
-                && eventFullDto.getParticipantLimit() > 0) {
+        if (getConfirmedRequestsCount(eventId) == event.getParticipantLimit()
+                && event.getParticipantLimit() > 0) {
             throw new ValidationException("У события достигнут лимит запросов на участие");
         }
 
@@ -74,12 +63,15 @@ public class RequestServiceImpl implements RequestService {
 
         request.setCreated(LocalDateTime.now());
 
-        request.setRequester(userMapper.toUser(userService.findById(userId)));
+        request.setRequester(userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(String.format(
+                        "Пользователь с id=%d не существует", userId)))
+        );
 
-        request.setEvent(eventMapper.toEvent(eventFullDto, userDto));
+        request.setEvent(event);
 
         //если для события отключена пре-модерация запросов на участие, то переход в состояние подтвержденного
-        if (eventFullDto.getRequestModeration()) {
+        if (event.getRequestModeration()) {
             request.setStatus(RequestStatus.PENDING);
         } else {
             request.setStatus(RequestStatus.CONFIRMED);
@@ -89,7 +81,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     @Override
-    public Long getConfirmedRequestsCount(Long eventId) {
+    public Integer getConfirmedRequestsCount(Long eventId) {
         return requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
     }
 
@@ -152,33 +144,35 @@ public class RequestServiceImpl implements RequestService {
                 () -> new EntityNotFoundException(String.format(
                         "Запрос на участие в событии с id=%d с неподтвержденным статусом не найден", requestId)));
 
-        EventFullDto eventFullDto = eventService.findByIdAndInitiator(eventId, userId);
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException(String.format(
+                        "Событие с id=%d не существует", eventId)));
 
         //проверяем что это событие пользователя userId и запрос для этого эвента
-        if (request.getEvent().getId().equals(eventId) && request.getEvent().getInitiator().getId().equals(userId)) {
-
-            if (!eventFullDto.getRequestModeration()) {
-                throw new EntityNotFoundException(String.format("Событие с id=%d не требует модерации запросов", eventId));
-            }
-
-            if (eventFullDto.getParticipantLimit() == eventFullDto.getConfirmedRequests()) {
-                throw new EntityNotFoundException(String.format("Событие с id=%d достигло максимума участников", eventId));
-            }
-
-            if (eventFullDto.getParticipantLimit() == eventFullDto.getConfirmedRequests() + 1) {
-                List<Request> requests = requestRepository.findAllByEventIdAndStatus(eventId, RequestStatus.PENDING);
-
-                for (Request req : requests) {
-                    reject(req.getId());
-                }
-            }
-            return confirm(requestId);
-
-        } else {
+        if (!request.getEvent().getId().equals(eventId) || !request.getEvent().getInitiator().getId().equals(userId)) {
             throw new EntityNotFoundException(String.format(
                     "Запрос id=%d на участие в событии (eventId=%d, initiator_id=%d) не найден",
                     requestId, eventId, userId));
         }
+
+        if (!event.getRequestModeration()) {
+            throw new EntityNotFoundException(String.format("Событие с id=%d не требует модерации запросов", eventId));
+        }
+
+        if (event.getParticipantLimit() == requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED)) {
+            throw new EntityNotFoundException(String.format("Событие с id=%d достигло максимума участников", eventId));
+        }
+
+        if (event.getParticipantLimit() == requestRepository.countByEventIdAndStatus(eventId,
+                RequestStatus.CONFIRMED) + 1) {
+            List<Request> requests = requestRepository.findAllByEventIdAndStatus(eventId, RequestStatus.PENDING);
+
+            for (Request req : requests) {
+                reject(req.getId());
+            }
+        }
+
+        return confirm(requestId);
     }
 
     @Override
@@ -189,12 +183,12 @@ public class RequestServiceImpl implements RequestService {
                         "Запрос на участие в событии с id=%d с неподтвержденным статусом не найден", requestId)));
 
         //проверяем что это событие пользователя userId и запрос для этого эвента
-        if (request.getEvent().getId().equals(eventId) && request.getEvent().getInitiator().getId().equals(userId)) {
-            return reject(requestId);
-        } else {
+        if (!request.getEvent().getId().equals(eventId) || !request.getEvent().getInitiator().getId().equals(userId)) {
             throw new EntityNotFoundException(String.format(
                     "Запрос id=%d на участие в событии (eventId=%d, initiator_id=%d) не найден",
                     requestId, eventId, userId));
         }
+
+        return reject(requestId);
     }
 }

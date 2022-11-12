@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.explorewme.event.dto.AdminUpdateEventRequest;
 import ru.practicum.explorewme.event.dto.EventFullDto;
-import ru.practicum.explorewme.event.model.EventState;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Positive;
@@ -38,7 +37,7 @@ public class EventAdminController {
     //Поиск событий
     @GetMapping
     public List<EventFullDto> findAll(@RequestParam(required = false) List<Long> users,
-                                      @RequestParam(required = false) List<EventState> states,
+                                      @RequestParam(required = false) List<String> states,
                                       @RequestParam(required = false) List<Long> categories,
                                       @RequestParam(name = "rangeStart", required = false) String start,
                                       @RequestParam(name = "rangeEnd", required = false) String end,

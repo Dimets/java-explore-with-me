@@ -1,7 +1,6 @@
 package ru.practicum.explorewme.event;
 
 import ru.practicum.explorewme.event.dto.*;
-import ru.practicum.explorewme.event.model.EventState;
 import ru.practicum.explorewme.event.sort.SortOption;
 
 import java.util.List;
@@ -27,7 +26,7 @@ public interface EventService {
 
     EventFullDto findPublicById(Long eventId);
 
-    List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<EventState> states, List<Long> categories,
+    List<EventFullDto> findAllAdminByCriteria(List<Long> users, List<String> states, List<Long> categories,
                                               String start, String end, Integer from, Integer size);
 
     List<EventShortDto> findAllPublicByCriteria(String text, List<Long> categories, Boolean paid, Boolean onlyAvailable,
