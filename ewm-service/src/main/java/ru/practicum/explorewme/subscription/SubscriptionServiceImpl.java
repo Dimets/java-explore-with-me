@@ -2,16 +2,13 @@ package ru.practicum.explorewme.subscription;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.explorewme.event.EventMapper;
 import ru.practicum.explorewme.event.EventRepository;
-import ru.practicum.explorewme.event.EventService;
 import ru.practicum.explorewme.event.dto.EventShortDto;
-import ru.practicum.explorewme.event.model.Event;
 import ru.practicum.explorewme.event.model.EventState;
 import ru.practicum.explorewme.exception.EntityNotFoundException;
 import ru.practicum.explorewme.exception.ValidationException;
@@ -39,8 +36,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
 
-    @Transactional
+
     @Override
+    @Transactional
     public SubscriptionDto create(Long subsId, Long userId) {
 
         if (subsId.equals(userId)) {
@@ -100,5 +98,44 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         return eventShortDtoList;
+    }
+
+    @Override
+    public List<EventShortDto> findAllEventsByUser(Long userId, Long subsId, Integer from, Integer size) {
+        Pageable pageable = PageRequest.of(from / size, size);
+
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException(String.format("Пользователь с id=%d не существует", userId));
+        }
+
+        if (!userRepository.existsById(subsId)) {
+            throw new EntityNotFoundException(String.format("Пользователь с id=%d не существует", subsId));
+        }
+
+        if (subscriptionRepository.findBySubscriberIdAndUserId(subsId, userId).isPresent()) {
+            return eventMapper.toEventShortDto(eventRepository.findByInitiatorIdAndStateIn(userId,
+                    List.of(EventState.PUBLISHED), pageable).stream().collect(Collectors.toList()));
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+    @Override
+    @Transactional
+    public void cancel(Long subsId, Long userId) {
+        User subscriber = userRepository.findById(subsId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(String.format("Пользователь с id=%d не существует", subsId))
+                );
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(String.format("Пользователь с id=%d не существует", userId))
+                );
+
+        Subscription subscription = subscriptionRepository.findBySubscriberIdAndUserId(subsId, userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не подписан на этого пользователя"));
+
+        subscriptionRepository.deleteById(subscription.getId());
     }
 }

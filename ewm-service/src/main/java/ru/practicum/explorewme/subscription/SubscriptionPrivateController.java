@@ -47,8 +47,27 @@ public class SubscriptionPrivateController {
     public List<EventShortDto> findAllEvents(@PathVariable Long subsId,
                                              @PositiveOrZero @RequestParam(defaultValue = "0") Integer from,
                                              @Positive @RequestParam(defaultValue = "10") Integer size) {
-        log.info("POST /subscriptions/events/{}", subsId);
+        log.info("GET /subscriptions/events/{}", subsId);
 
         return subscriptionService.findAllEvents(subsId, from, size);
     }
+
+    //Получить список актуальных событий пользователя, на которого подписан пользователь
+    @GetMapping(path = "/users/{userId}/events/{subsId}")
+    public List<EventShortDto> findAllEventsByUser(@PathVariable Long userId, @PathVariable Long subsId,
+                                             @PositiveOrZero @RequestParam(defaultValue = "0") Integer from,
+                                             @Positive @RequestParam(defaultValue = "10") Integer size) {
+        log.info("GET /subscriptions/{}/events/{}", userId, subsId);
+
+        return subscriptionService.findAllEventsByUser(userId, subsId, from, size);
+    }
+
+    //Удалить подписку на пользователя
+    @PatchMapping(path = "/{subsId}/cancel/{userId}")
+    void cancel(@PathVariable Long subsId, @PathVariable Long userId) {
+        log.info("PATCH /subscriptions/{}/cancel/{}", subsId, userId);
+
+        subscriptionService.cancel(subsId, userId);
+    }
+
 }
