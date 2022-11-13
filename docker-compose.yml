@@ -2,7 +2,7 @@ version: '3.1'
 services:
   stats-server:
     build: ./ewm-stat
-    #//TODO comment
+    #//TODO comment for github PR
     #image: ewm-stat-image
     container_name: stats-server
     ports:
@@ -29,7 +29,7 @@ services:
 
   ewm-service:
     build: ./ewm-service
-    #//TODO comment
+    #//TODO comment for github PR
     #image: ewm-service-image
     container_name: ewm-service
     ports:
