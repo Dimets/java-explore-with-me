@@ -3,7 +3,7 @@ services:
   stats-server:
     build: ./ewm-stat
     #//TODO comment for github PR
-    image: ewm-stat-image
+    #image: ewm-stat-image
     container_name: stats-server
     ports:
       - "9090:9090"
@@ -30,7 +30,7 @@ services:
   ewm-service:
     build: ./ewm-service
     #//TODO comment for github PR
-    image: ewm-service-image
+    #image: ewm-service-image
     container_name: ewm-service
     ports:
       - "8080:8080"
