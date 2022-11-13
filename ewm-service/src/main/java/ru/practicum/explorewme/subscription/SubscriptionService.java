@@ -1,6 +1,5 @@
 package ru.practicum.explorewme.subscription;
 
-import org.springframework.web.bind.annotation.PathVariable;
 import ru.practicum.explorewme.event.dto.EventShortDto;
 import ru.practicum.explorewme.subscription.dto.SubscriptionDto;
 import ru.practicum.explorewme.user.dto.UserShortDto;
