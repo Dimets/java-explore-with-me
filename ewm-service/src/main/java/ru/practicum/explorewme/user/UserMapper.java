@@ -37,5 +37,9 @@ public class UserMapper {
         return new UserShortDto(user.getId(), user.getName());
     }
 
+    public List<UserShortDto> toUserShortDto(List<User> users) {
+        return users.stream().map(x -> toUserShortDto(x)).collect(Collectors.toList());
+    }
+
 
 }
